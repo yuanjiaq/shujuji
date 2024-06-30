@@ -1,0 +1,53 @@
+import cv2
+import numpy as np
+import os
+
+def process_image(image_path, output_dir, filename):
+    # 读取输入图像
+    input_image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+
+    # 执行DDE细节增强
+
+    # 第一步：滤波器分离低频和高频信息
+    blur_img = cv2.GaussianBlur(input_image, (0, 0), 10)
+    detail_img = input_image - blur_img
+    cv2.imwrite(os.path.join(output_dir, f"blur_{filename}"), blur_img)
+    cv2.imwrite(os.path.join(output_dir, f"detail_{filename}"), detail_img)
+
+    # 第二步,对低频信息应用合适的灰度增强算法
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    enhanced_blur_img = clahe.apply(blur_img)
+    cv2.imwrite(os.path.join(output_dir, f"enhanced_blur_{filename}"), enhanced_blur_img)
+
+    enhanced_blur_img_blur = cv2.bilateralFilter(enhanced_blur_img, 9, 75, 75)
+    cv2.imwrite(os.path.join(output_dir, f"enhanced_blur_blur_{filename}"), enhanced_blur_img_blur)
+
+    # 第三步，对高频信息应用合适的细节增强和噪声抑制算法
+    clahe_ = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    enhanced_detail_img = clahe_.apply(input_image)
+    cv2.imwrite(os.path.join(output_dir, f"enhanced_detail_{filename}"), enhanced_detail_img)
+
+    # 第四步
+    # 合成最终的输出图像
+    output = cv2.addWeighted(enhanced_blur_img, 0.3, enhanced_detail_img, 0.7, 0)
+    cv2.imwrite(os.path.join(output_dir, f"final_output_{filename}"), output)
+
+
+# 处理文件夹中的所有图像
+def process_all_images(input_dir, output_dir):
+    # 确保输出目录存在
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # 遍历输入目录中的所有文件
+    for filename in os.listdir(input_dir):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tif', '.tiff')):
+            image_path = os.path.join(input_dir, filename)
+            process_image(image_path, output_dir, filename)
+print(f"Processed and saved all images for {filename}")
+
+# 输入和输出文件夹路径
+input_dir = "C:\\Users\\29637\OneDrive\\桌面\\shujvji"
+output_dir = "C:\\Users\\29637\\OneDrive\\桌面\\out"
+# 调用函数处理图像
+process_all_images(input_dir, output_dir)
